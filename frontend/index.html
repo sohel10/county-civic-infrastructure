@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>County Health Comparison Tool</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>County Health Comparison Tool</h1>
+            <p class="subtitle">2023 Census Income + 2023 CDC Health Data</p>
+        </div>
+
+        <div class="controls">
+            <select id="stateSelect" onchange="loadByState()">
+                <option value="">-- Select State --</option>
+            </select>
+            <button onclick="loadCounties()">📊 Show All</button>
+            <button onclick="compareSelected()" style="background-color:#27ae60">✅ Compare Selected</button>
+            <button onclick="exportComparison()" style="background-color:#f39c12">📥 Export PDF</button>
+        </div>
+
+        <!-- STATS - ONLY Income & Health -->
+        <div id="summaryStats" class="summary-stats" style="display:none;">
+            <div class="stat-item">
+                <div class="stat-label">Counties</div>
+                <div class="stat-value" id="totalCounties">0</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">Avg Income</div>
+                <div class="stat-value" id="avgIncome">$0</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">Avg Health</div>
+                <div class="stat-value" id="avgHealth">0</div>
+            </div>
+        </div>
+
+        <!-- SEARCH -->
+        <div class="search-filter-box">
+            <input type="text" id="searchInput" class="search-input" placeholder="🔍 Search county...">
+            <button class="search-btn" onclick="searchCounty()">Search</button>
+            <button class="reset-btn" onclick="resetSearch()">Reset</button>
+        </div>
+
+        <!-- CONTENT: TABLE LEFT, CHARTS RIGHT -->
+        <div class="content-wrapper">
+            <!-- TABLE: ONLY County, State, Income, Health -->
+            <div id="results"></div>
+
+            <!-- CHARTS -->
+            <div class="charts-panel">
+                <div id="chartContainer1" style="display:none;">
+                    <h3>📊 Income vs Health</h3>
+                    <canvas id="comparisonChart1"></canvas>
+                </div>
+
+                <div id="chartContainer2" style="display:none;">
+                    <h3>📈 Health Trend</h3>
+                    <canvas id="comparisonChart2"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- DATA SOURCES -->
+        <div style="margin-top:30px; padding:15px; background:#f0f0f0; border-radius:8px; font-size:12px; color:#666;">
+            <strong>Data Sources:</strong> 2023 US Census Bureau (Income) + 2023 CDC PLACES (Health Metrics)
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>
