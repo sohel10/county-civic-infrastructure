@@ -121,7 +121,7 @@ Visualizations
 Disparity analysis
 
 ## Project Structure
-````text
+```text
 county-civic-data/
 ├── frontend/
 │ ├── index.html
