@@ -121,6 +121,7 @@ Visualizations
 Disparity analysis
 
 ## Project Structure
+````text
 county-civic-data/
 ├── frontend/
 │ ├── index.html
@@ -136,7 +137,7 @@ county-civic-data/
 │ └── requirements.txt
 ├── README.md
 └── .gitignore
-
+```
 ## API Endpoints
 GET /api/states
 → List of US states with county counts
