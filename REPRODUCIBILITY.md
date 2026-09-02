@@ -103,12 +103,6 @@ Average college education: 28.3%
 - [ ] API endpoints returning data
 - [ ] Visualizations rendering correctly
 
-## Time to Complete
-
-- Data download: 5 minutes
-- Pipeline processing: 2 minutes
-- API startup: 1 minute
-- **Total: ~8 minutes for full reproducibility**
 
 ## Troubleshooting
 
@@ -125,6 +119,4 @@ Average college education: 28.3%
 → Check for JavaScript errors
 → Verify API is returning JSON data
 
----
 
-**Last Updated:** September 2, 2026
