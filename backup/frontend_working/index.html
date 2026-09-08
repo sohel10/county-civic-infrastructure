@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>County Health Comparison Tool</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>County Health Comparison Tool</h1>
+            <p class="subtitle">Explore health disparities across 3,142 US counties</p>
+        </div>
+
+        <div class="controls">
+            <select id="stateSelect" onchange="loadByState()">
+                <option value="">-- Select State --</option>
+            </select>
+            <button onclick="loadCounties()">📊 Show All</button>
+            <button onclick="compareSelected()" style="background-color:#27ae60">✅ Compare Selected</button>
+            <button onclick="exportComparison()" style="background-color:#f39c12">📥 Export PDF</button>
+        </div>
+
+        <!-- SUMMARY STATS CARD -->
+        <div id="summaryStats" class="summary-stats" style="display:none;">
+            <div class="stat-item">
+                <div class="stat-label">Total Counties</div>
+                <div class="stat-value" id="totalCounties">0</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">Avg Poverty Rate</div>
+                <div class="stat-value" id="avgPoverty">0%</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">Avg Health Score</div>
+                <div class="stat-value" id="avgHealth">0</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">Avg Income</div>
+                <div class="stat-value" id="avgIncome">$0</div>
+            </div>
+        </div>
+
+        <!-- SEARCH & FILTER BOX -->
+        <div class="search-filter-box">
+            <div class="search-section">
+                <input type="text" id="searchInput" class="search-input" placeholder="🔍 Search county by name...">
+                <button class="search-btn" onclick="searchCounty()">Search</button>
+                <button class="reset-btn" onclick="resetSearch()">Reset</button>
+            </div>
+
+            <div class="filter-section">
+                <div class="filter-group">
+                    <label>Poverty Rate:</label>
+                    <input type="range" id="povertyFilter" min="0" max="50" value="50" onchange="applyFilters()" class="filter-range">
+                    <span id="povertyValue">0-50%</span>
+                </div>
+
+                <div class="filter-group">
+                    <label>Median Income:</label>
+                    <input type="range" id="incomeFilter" min="30000" max="150000" value="150000" onchange="applyFilters()" class="filter-range">
+                    <span id="incomeValue">$30K-$150K</span>
+                </div>
+
+                <button class="filter-reset-btn" onclick="resetFilters()">Clear Filters</button>
+            </div>
+        </div>
+
+        <div id="stats"></div>
+        
+        <div class="content-wrapper">
+            <div id="results"></div>
+            <div class="charts-panel">
+                <!-- CHART 1 -->
+                <div id="chartContainer1" style="display:none;">
+                    <h2>📊 Poverty vs Health Score</h2>
+                    <canvas id="comparisonChart1"></canvas>
+                </div>
+
+                <!-- CHART 2 -->
+                <div id="chartContainer2" style="display:none;">
+                    <h2>🎓 Education vs Median Income</h2>
+                    <canvas id="comparisonChart2"></canvas>
+                </div>
+
+                <!-- BETTER DISPARITY CARD - BIGGER & MORE PROMINENT -->
+                <div id="insightCard" class="insight-card-enhanced" style="display:none;">
+                    <div class="insight-header">
+                        <h2>⚠️ Health Disparity Analysis</h2>
+                    </div>
+                    <div id="insightContent"></div>
+                </div>
+
+                <!-- DATA SOURCES -->
+                <div id="dataSources" style="display:none; margin-top:30px; padding:20px; background:#f8f9fa; border-radius:8px; border-left:4px solid #3498db;">
+                    <h3 style="margin-top:0; color:#2c3e50;">📋 Data Sources & Methodology</h3>
+                    <div style="font-size:13px; line-height:1.8; color:#555;">
+                        <p><strong>County Information:</strong> Real US Census Bureau data (2020 Census) - 226 counties</p>
+                        <p><strong>Health Metrics:</strong> Synthetic demonstration data for testing</p>
+                        <p><strong>⚠️ Disclaimer:</strong> Demonstration tool only. Not for policy decisions.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>

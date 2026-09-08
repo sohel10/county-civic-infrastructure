@@ -1,0 +1,53 @@
+# Environment & Secrets
+.env
+.env.local
+config.py
+secrets.json
+api_keys.json
+API_KEY.txt
+
+# Database & Data (DO NOT PUSH)
+*.db
+*.sqlite
+*.sqlite3
+counties.db
+counties_2023.db
+backups/
+archive/
+*.csv
+data/
+
+# API keys & credentials
+*_key.json
+*_credentials.json
+*.pem
+*.key
+credentials.py
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+build/
+dist/
+*.egg-info/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*~
+.DS_Store
+
+# Node/npm
+node_modules/
+npm-debug.log
+
+# OS
+Thumbs.db
+.DS_Store

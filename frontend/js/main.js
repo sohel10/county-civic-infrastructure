@@ -1,10 +1,89 @@
-const API_URL = 'http://127.0.0.1:5005/api';
-let comparisonChart1 = null;
-let comparisonChart2 = null;
+const API_URL = 'http://localhost:5005/api';
 let allCounties = [];
 let filteredCounties = [];
+let selectedCounties = [];
+let comparisonChart = null;
 
-window.onload = loadStates;
+window.onload = () => {
+    loadStates();
+    setupGlobalSearch();
+};
+
+// FEATURE 1: Global Search
+function setupGlobalSearch() {
+    const input = document.getElementById('globalSearchInput');
+    if (!input) return;
+    let timeout;
+    input.addEventListener('input', function() {
+        clearTimeout(timeout);
+        const query = this.value.trim();
+        if (query.length < 2) {
+            document.getElementById('searchResults').innerHTML = '';
+            document.getElementById('searchResults').style.display = 'none';
+            return;
+        }
+        timeout = setTimeout(() => {
+            fetch(`${API_URL}/search?q=${encodeURIComponent(query)}`)
+                .then(res => res.json())
+                .then(result => displaySearchResults(result.data));
+        }, 300);
+    });
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('.global-search-wrapper')) {
+            document.getElementById('searchResults').style.display = 'none';
+        }
+    });
+}
+
+function displaySearchResults(counties) {
+    const container = document.getElementById('searchResults');
+    if (!counties || counties.length === 0) {
+        container.innerHTML = '<div style="padding:10px;">No counties found</div>';
+        container.style.display = 'block';
+        return;
+    }
+    let html = '';
+    counties.forEach(c => {
+        const isSelected = selectedCounties.some(s => s.fips === c.fips);
+        html += `<div class="search-item ${isSelected ? 'selected' : ''}" onclick="addToComparison(${c.fips}, '${c.county}', '${c.state}', ${c.poverty_pct}, ${c.diabetes}, ${c.obesity}, ${c.bphigh}, ${c.depression})">
+            <strong>${c.county}, ${c.state}</strong><br/>
+            Poverty: ${c.poverty_pct}% | Diabetes: ${c.diabetes}% | Obesity: ${c.obesity}%
+            <span style="float:right; background:#3498db; color:white; padding:3px 8px; border-radius:3px; font-size:12px;">${isSelected ? '✓ Selected' : '+ Add'}</span>
+        </div>`;
+    });
+    container.innerHTML = html;
+    container.style.display = 'block';
+}
+
+function addToComparison(fips, county, state, pov, diab, obes, bp, dep) {
+    if (selectedCounties.some(c => c.fips === fips)) return;
+    if (selectedCounties.length >= 6) { alert('Max 6 counties'); return; }
+    selectedCounties.push({ fips, county, state, poverty_pct: pov, diabetes: diab, obesity: obes, bphigh: bp, depression: dep });
+    updateComparisonPanel();
+}
+
+function removeFromComparison(fips) {
+    selectedCounties = selectedCounties.filter(c => c.fips !== fips);
+    updateComparisonPanel();
+}
+
+function updateComparisonPanel() {
+    const panel = document.getElementById('comparePanel');
+    if (selectedCounties.length === 0) { panel.style.display = 'none'; return; }
+    let html = '<h3>Selected for Comparison:</h3><div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px;">';
+    selectedCounties.forEach(c => {
+        html += `<div style="background:#3498db; color:white; padding:8px 12px; border-radius:6px; display:flex; align-items:center; gap:6px;">
+            ${c.county}, ${c.state}
+            <button onclick="removeFromComparison(${c.fips})" style="background:none; border:none; color:white; cursor:pointer; font-weight:bold;">&times;</button>
+        </div>`;
+    });
+    html += '</div>';
+    if (selectedCounties.length >= 2) {
+        html += '<button onclick="runComparison()" style="background:#27ae60; color:white; border:none; padding:10px 20px; border-radius:6px; cursor:pointer; font-weight:600;">📊 Compare Charts</button>';
+    }
+    panel.innerHTML = html;
+    panel.style.display = 'block';
+}
 
 function loadStates() {
     fetch(`${API_URL}/states`)
@@ -14,8 +93,8 @@ function loadStates() {
             select.innerHTML = '<option value="">-- Select State --</option>';
             result.data.forEach(item => {
                 const opt = document.createElement('option');
-                opt.value = item.state_name;
-                opt.textContent = `${item.state_name} (${item.county_count})`;
+                opt.value = item.state;
+                opt.textContent = `${item.state} (${item.county_count})`;
                 select.appendChild(opt);
             });
         });
@@ -24,7 +103,7 @@ function loadStates() {
 function loadByState() {
     const state = document.getElementById('stateSelect').value;
     if (!state) { alert('Select a state'); return; }
-    fetch(`${API_URL}/counties?state=${encodeURIComponent(state)}`)
+    fetch(`${API_URL}/counties/by-state?state=${encodeURIComponent(state)}`)
         .then(res => res.json())
         .then(result => {
             allCounties = result.data;
@@ -35,7 +114,7 @@ function loadByState() {
 }
 
 function loadCounties() {
-    fetch(`${API_URL}/counties?limit=3142`)
+    fetch(`${API_URL}/counties/by-state`)
         .then(res => res.json())
         .then(result => {
             allCounties = result.data;
@@ -45,24 +124,39 @@ function loadCounties() {
         });
 }
 
-// CLEANED: ONLY Show Select, County, State, Income, Health
+// FEATURE 3: Color-coded health
+function getColorClass(metric, value) {
+    if (metric === 'poverty') {
+        return value < 10 ? '#27ae60' : value < 20 ? '#f39c12' : '#e74c3c';
+    } else if (metric === 'diabetes') {
+        return value < 8 ? '#27ae60' : value < 12 ? '#f39c12' : '#e74c3c';
+    } else if (metric === 'obesity') {
+        return value < 30 ? '#27ae60' : value < 40 ? '#f39c12' : '#e74c3c';
+    }
+    return '#95a5a6';
+}
+
 function displayCounties(counties) {
-    let html = `<table><thead><tr style="background:#34495e; color:white;"><th style="text-align:center; width:50px;">Select</th><th>County</th><th>State</th><th style="text-align:center;">Income</th><th style="text-align:center;">Health</th></tr></thead><tbody>`;
-
+    let html = '<table><thead><tr style="background:#34495e; color:white;"><th>County, State</th><th style="text-align:center;">Poverty %</th><th style="text-align:center;">Diabetes %</th><th style="text-align:center;">Obesity %</th></tr></thead><tbody>';
     counties.forEach(c => {
-        html += `<tr><td style="text-align:center;"><input type="checkbox" class="county-select" value="${c.fips}" onchange="autoCompare()"></td><td>${c.county_name}</td><td>${c.state_name}</td><td style="text-align:center;">$${Number(c.median_income).toLocaleString()}</td><td style="text-align:center; color:#e74c3c; font-weight:bold;">${c.health_score}</td></tr>`;
+        const povColor = getColorClass('poverty', c.poverty_pct);
+        const diabColor = getColorClass('diabetes', c.diabetes);
+        const obesColor = getColorClass('obesity', c.obesity);
+        html += `<tr style="cursor:pointer;" onclick="addToComparison(${c.fips}, '${c.county}', '${c.state}', ${c.poverty_pct}, ${c.diabetes}, ${c.obesity}, ${c.bphigh}, ${c.depression})">
+            <td><strong>${c.county}</strong>, ${c.state}</td>
+            <td style="text-align:center; background-color:${povColor}; color:white; font-weight:bold;">${c.poverty_pct}%</td>
+            <td style="text-align:center; background-color:${diabColor}; color:white; font-weight:bold;">${c.diabetes}%</td>
+            <td style="text-align:center; background-color:${obesColor}; color:white; font-weight:bold;">${c.obesity}%</td>
+        </tr>`;
     });
-
     html += '</tbody></table>';
     document.getElementById('results').innerHTML = html;
 }
 
-// FEATURE 1: Search Box
 function searchCounty() {
     const query = document.getElementById('searchInput').value.trim().toLowerCase();
     if (!query) { filteredCounties = [...allCounties]; displayCounties(filteredCounties); return; }
-
-    filteredCounties = allCounties.filter(c => c.county_name.toLowerCase().includes(query) || c.state_name.toLowerCase().includes(query));
+    filteredCounties = allCounties.filter(c => c.county.toLowerCase().includes(query) || c.state.toLowerCase().includes(query));
     displayCounties(filteredCounties);
     updateSummaryStats(filteredCounties);
 }
@@ -74,171 +168,64 @@ function resetSearch() {
     updateSummaryStats(filteredCounties);
 }
 
-// FEATURE 2: Summary Stats - ONLY Income & Health
 function updateSummaryStats(counties) {
     if (counties.length === 0) return;
-
-    const avgHealth = (counties.reduce((sum, c) => sum + c.health_score, 0) / counties.length).toFixed(1);
-    const avgIncome = Math.round(counties.reduce((sum, c) => sum + c.median_income, 0) / counties.length);
-
+    const avgPov = (counties.reduce((s, c) => s + c.poverty_pct, 0) / counties.length).toFixed(1);
+    const avgDiab = (counties.reduce((s, c) => s + c.diabetes, 0) / counties.length).toFixed(1);
+    const avgObes = (counties.reduce((s, c) => s + c.obesity, 0) / counties.length).toFixed(1);
     document.getElementById('totalCounties').textContent = counties.length;
-    document.getElementById('avgHealth').textContent = avgHealth;
-    document.getElementById('avgIncome').textContent = '$' + avgIncome.toLocaleString();
+    document.getElementById('avgPoverty').textContent = avgPov + '%';
+    document.getElementById('avgDiabetes').textContent = avgDiab + '%';
+    document.getElementById('avgObesity').textContent = avgObes + '%';
     document.getElementById('summaryStats').style.display = 'grid';
 }
 
-function autoCompare() {
-    const checked = document.querySelectorAll('.county-select:checked');
-    if (checked.length >= 2) {
-        compareSelected();
+// FEATURE 1: Comparison Charts
+function runComparison() {
+    if (selectedCounties.length < 2) { alert('Select 2+ counties'); return; }
+    displayComparisonChart();
+}
+
+function displayComparisonChart() {
+    const labels = selectedCounties.map(c => `${c.county}, ${c.state.substring(0, 2)}`);
+    const povData = selectedCounties.map(c => c.poverty_pct);
+    const diabData = selectedCounties.map(c => c.diabetes);
+    const obesData = selectedCounties.map(c => c.obesity);
+    
+    const ctx = document.getElementById('comparisonChart');
+    if (!ctx) {
+        let container = document.getElementById('chartContainer');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'chartContainer';
+            container.style.marginTop = '30px';
+            document.querySelector('.content-wrapper').appendChild(container);
+        }
+        container.innerHTML = '<h3>📊 Comparison Chart</h3><canvas id="comparisonChart" style="max-height:300px;"></canvas>';
     }
-}
-
-function compareSelected() {
-    const checked = document.querySelectorAll('.county-select:checked');
-    if (checked.length < 2) return;
-
-    const fips = Array.from(checked).map(c => c.value).join(',');
-    fetch(`${API_URL}/compare?fips=${fips}`)
-        .then(res => res.json())
-        .then(result => {
-            displayChart1(result.data);
-            displayChart2(result.data);
-            displayDisparityAnalysis(result.data);
-        });
-}
-
-// CHART 1: Income vs Health
-function displayChart1(counties) {
-    const labels = counties.map(c => c.county_name);
-    const income = counties.map(c => c.median_income / 1000);
-    const health = counties.map(c => c.health_score);
-
-    const ctx = document.getElementById('comparisonChart1');
-    if (!ctx) return;
-    if (comparisonChart1) comparisonChart1.destroy();
-
-    comparisonChart1 = new Chart(ctx, {
+    
+    if (comparisonChart) comparisonChart.destroy();
+    comparisonChart = new Chart(document.getElementById('comparisonChart'), {
         type: 'bar',
         data: {
             labels: labels,
             datasets: [
-                { label: 'Income ($1000s)', data: income, backgroundColor: '#f39c12', yAxisID: 'y' },
-                { label: 'Health Score', data: health, backgroundColor: '#27ae60', yAxisID: 'y1' }
+                { label: 'Poverty %', data: povData, backgroundColor: '#e74c3c' },
+                { label: 'Diabetes %', data: diabData, backgroundColor: '#f39c12' },
+                { label: 'Obesity %', data: obesData, backgroundColor: '#3498db' }
             ]
         },
-        options: { 
-            responsive: true, 
-            scales: { 
-                y: { position: 'left', title: { display: true, text: 'Income ($1000s)' } }, 
-                y1: { position: 'right', title: { display: true, text: 'Health Score' } } 
-            } 
-        }
+        options: { responsive: true, scales: { y: { beginAtZero: true, max: 50 } } }
     });
-
-    document.getElementById('chartContainer1').style.display = 'block';
 }
 
-// CHART 2: Health Trend by County
-function displayChart2(counties) {
-    const labels = counties.map(c => c.county_name);
-    const health = counties.map(c => c.health_score);
-
-    const ctx = document.getElementById('comparisonChart2');
-    if (!ctx) return;
-    if (comparisonChart2) comparisonChart2.destroy();
-
-    comparisonChart2 = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: labels,
-            datasets: [
-                { label: 'Health Score', data: health, borderColor: '#27ae60', backgroundColor: 'rgba(39, 174, 96, 0.1)', borderWidth: 2, fill: true }
-            ]
-        },
-        options: { 
-            responsive: true, 
-            scales: { 
-                y: { title: { display: true, text: 'Health Score' } } 
-            } 
-        }
-    });
-
-    document.getElementById('chartContainer2').style.display = 'block';
-}
-
-// FEATURE 3: Health Disparity Analysis - REAL DATA ONLY
-function displayDisparityAnalysis(counties) {
-    if (counties.length < 2) return;
-
-    // Sort by income to find disparity
-    const sorted = [...counties].sort((a, b) => a.median_income - b.median_income);
-    const highest = sorted[sorted.length - 1];
-    const lowest = sorted[0];
-
-    const incomeGap = highest.median_income - lowest.median_income;
-    const healthGap = Math.abs(highest.health_score - lowest.health_score);
-
-    const html = `
-        <div style="padding: 20px; background: linear-gradient(135deg, #f39c12, #e67e22); border-radius: 8px; color: white; margin-top: 20px;">
-            <h3 style="margin: 0 0 15px 0; font-size: 18px;">🔍 Health Disparity Analysis</h3>
-            <div style="background: rgba(0,0,0,0.1); padding: 15px; border-radius: 6px; margin-bottom: 15px;">
-                <p style="margin: 8px 0; font-size: 16px;"><strong>${highest.county_name}</strong> vs <strong>${lowest.county_name}</strong></p>
-            </div>
-            <div style="font-size: 14px; line-height: 1.8;">
-                <p style="margin: 8px 0;">💰 <strong>Income Gap:</strong> $${incomeGap.toLocaleString()}</p>
-                <p style="margin: 8px 0;">❤️ <strong>Health Gap:</strong> ${healthGap.toFixed(1)} points</p>
-            </div>
-            <div style="background: rgba(0,0,0,0.2); padding: 12px; border-radius: 6px; margin-top: 15px; font-size: 13px; font-style: italic;">
-                ⚠️ ${highest.county_name} shows ${incomeGap > 20000 ? 'significant' : 'notable'} socioeconomic health disparities requiring targeted intervention and resources.
-            </div>
-        </div>
-    `;
-
-    // Find or create container for disparity analysis
-    let container = document.getElementById('disparityContainer');
-    if (!container) {
-        container = document.createElement('div');
-        container.id = 'disparityContainer';
-        document.querySelector('.charts-panel').appendChild(container);
-    }
-    container.innerHTML = html;
-    container.style.display = 'block';
-}
-
-// FEATURE 6: Export Button - ONLY Real Data
+// FEATURE 4: Export PDF
 function exportComparison() {
-    const checked = document.querySelectorAll('.county-select:checked');
-    if (checked.length < 2) { alert('Select 2+ counties to export'); return; }
-
-    const fips = Array.from(checked).map(c => c.value).join(',');
-    fetch(`${API_URL}/compare?fips=${fips}`)
-        .then(res => res.json())
-        .then(result => {
-            const element = document.createElement('div');
-            element.innerHTML = `
-                <h2>County Health Comparison Report</h2>
-                <h3>Compared Counties:</h3>
-                ${result.data.map(c => `
-                    <div style="border: 1px solid #ddd; padding: 15px; margin: 10px 0;">
-                        <h4>${c.county_name}, ${c.state_name}</h4>
-                        <p><strong>FIPS Code:</strong> ${c.fips}</p>
-                        <p><strong>Median Income:</strong> $${Number(c.median_income).toLocaleString()}</p>
-                        <p><strong>Health Score:</strong> ${c.health_score}</p>
-                    </div>
-                `).join('')}
-                <p style="margin-top: 30px; font-size: 12px; color: #666;">Data: 2023 US Census Bureau (Income) + 2023 CDC PLACES (Health)</p>
-                <p style="font-size: 12px; color: #666;">Generated: ${new Date().toLocaleString()}</p>
-            `;
-
-            const opt = {
-                margin: 10,
-                filename: 'county-comparison-report.pdf',
-                image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 2 },
-                jsPDF: { orientation: 'portrait', unit: 'mm', format: 'a4' }
-            };
-
-            html2pdf().set(opt).from(element).save();
-        });
+    if (selectedCounties.length === 0) { alert('Select counties first'); return; }
+    const html = `<h2>County Comparison Report</h2><p>${new Date().toLocaleString()}</p>
+        ${selectedCounties.map(c => `<p><strong>${c.county}, ${c.state}</strong><br/>
+        Poverty: ${c.poverty_pct}% | Diabetes: ${c.diabetes}% | Obesity: ${c.obesity}% | High BP: ${c.bphigh}% | Depression: ${c.depression}%</p>`).join('')}`;
+    const element = document.createElement('div');
+    element.innerHTML = html;
+    html2pdf().set({margin:10, filename:'county-comparison.pdf'}).from(element).save();
 }

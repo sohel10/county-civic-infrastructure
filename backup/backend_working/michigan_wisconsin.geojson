@@ -1,0 +1,53 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "fips": "26005",
+        "county": "Allegan",
+        "state": "Michigan"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[-86.2, 42.3], [-85.8, 42.3], [-85.8, 42.7], [-86.2, 42.7], [-86.2, 42.3]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "fips": "26007",
+        "county": "Alpena",
+        "state": "Michigan"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[-83.5, 45.0], [-83.0, 45.0], [-83.0, 45.5], [-83.5, 45.5], [-83.5, 45.0]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "fips": "55001",
+        "county": "Adams",
+        "state": "Wisconsin"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[-89.6, 43.8], [-89.2, 43.8], [-89.2, 44.2], [-89.6, 44.2], [-89.6, 43.8]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "fips": "55003",
+        "county": "Ashland",
+        "state": "Wisconsin"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[-90.9, 46.3], [-90.4, 46.3], [-90.4, 46.8], [-90.9, 46.8], [-90.9, 46.3]]]
+      }
+    }
+  ]
+}

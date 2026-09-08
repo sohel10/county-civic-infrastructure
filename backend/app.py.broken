@@ -1,0 +1,47 @@
+from flask import Flask, jsonify, request
+from flask_cors import CORS
+import sqlite3
+
+app = Flask(__name__)
+CORS(app)
+
+DB_PATH = 'counties.db'
+
+def query_db(sql, params=()):
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    cursor.execute(sql, params)
+    rows = [dict(row) for row in cursor.fetchall()]
+    conn.close()
+    return rows
+
+@app.route('/api/states', methods=['GET'])
+def get_states():
+    rows = query_db('SELECT DISTINCT state_name as state, COUNT(*) as county_count FROM counties GROUP BY state_name ORDER BY state')
+    return jsonify({'count': len(rows), 'data': rows})
+
+@app.route('/api/counties/by-state', methods=['GET'])
+def get_counties_by_state():
+    state = request.args.get('state', '')
+    if not state:
+        return jsonify({'count': 0, 'data': []})
+    rows = query_db('SELECT fips, county, state_name, poverty_pct, diabetes, obesity FROM counties WHERE state = ? ORDER BY county', (state,))
+    return jsonify({'count': len(rows), 'data': rows})
+
+@app.route('/api/search', methods=['GET'])
+def search_counties():
+    q = request.args.get('q', '').strip()
+    if len(q) < 2:
+        return jsonify({'count': 0, 'data': []})
+    rows = query_db('''
+        SELECT fips, county, state_name, poverty_pct, diabetes, obesity
+        FROM counties
+        WHERE county LIKE ? OR state LIKE ?
+        ORDER BY state, county
+        LIMIT 50
+    ''', (f'%{q}%', f'%{q}%'))
+    return jsonify({'count': len(rows), 'data': rows})
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5005, debug=True)
