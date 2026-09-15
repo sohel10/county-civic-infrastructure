@@ -1,37 +1,14 @@
-# 🔐 SENSITIVE FILES - NEVER COMMIT
+# 🔐 SENSITIVE FILES
 rag.pem
 *.pem
 .env
 .env.local
-.env.*.local
 
-# Node
+# Node & Python
 node_modules/
 build/
-dist/
-.next/
-
-# Python
 __pycache__/
-*.pyc
 venv/
-env/
-.venv/
 
 # Backups
 *.BACKUP_*
-*.backup
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Logs
-*.log
-npm-debug.log*
