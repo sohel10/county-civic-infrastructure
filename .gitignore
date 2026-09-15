@@ -1,14 +1,8 @@
-# 🔐 SENSITIVE FILES
 rag.pem
 *.pem
 .env
-.env.local
-
-# Node & Python
 node_modules/
 build/
 __pycache__/
 venv/
-
-# Backups
 *.BACKUP_*
