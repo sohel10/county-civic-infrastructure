@@ -652,12 +652,7 @@ Body: {"counties": [{"fips": 26163, "state": "Michigan"}, ...]}
 - Nginx proxies traffic to containers
 - Domain uses HTTPS with SSL certificate
 
-### Never Do This
-- ❌ Use hardcoded localhost in production code
-- ❌ Modify minified JavaScript files directly
-- ❌ Keep old files in multiple locations
-- ❌ Deploy without updating API URL
-- ❌ Skip testing after deployment
+
 
 ### Always Do This
 - ✓ Change API URL to /api before building for production
