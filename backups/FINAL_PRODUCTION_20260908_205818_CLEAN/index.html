@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>County Health Comparison Tool</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .tabs { display: flex; gap: 8px; margin: 20px 0; border-bottom: 2px solid #ddd; flex-wrap: wrap; }
+        .tab { padding: 12px 20px; cursor: pointer; border: none; border-radius: 4px 4px 0 0; font-weight: 600; color: white; }
+        .tab:nth-child(1) { background: #3498db; }
+        .tab:nth-child(2) { background: #27ae60; }
+        .tab:nth-child(3) { background: #e74c3c; }
+        .tab:nth-child(4) { background: #f39c12; }
+        .tab:nth-child(5) { background: #9b59b6; }
+        .tab:nth-child(6) { background: #1abc9c; }
+        .tab.active { box-shadow: 0 -3px 0 rgba(0,0,0,0.2); }
+        .tab-content { display: none; padding: 20px; background: #f9f9f9; border-radius: 4px; }
+        .tab-content.active { display: block; }
+        .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 15px 0; }
+        .stat-box { background: #3498db; color: white; padding: 15px; border-radius: 6px; text-align: center; }
+        /* SIDE-BY-SIDE layout */
+        .layout-container { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px; }
+        @media (max-width: 1200px) { .layout-container { grid-template-columns: 1fr; } }
+        .table-section { overflow-x: auto; }
+        .chart-section { min-height: 400px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>County Health Comparison Tool</h1>
+            <p class="subtitle">Poverty vs Health Status | 2023 Census + CDC Data | 3,135 US Counties</p>
+        </div>
+
+        <!-- GLOBAL SEARCH -->
+        <div class="global-search-wrapper">
+            <input type="text" id="globalSearchInput" placeholder="🔍 Search any county (e.g., 'Wayne')...">
+            <div id="searchResults" style="display:none; position:absolute; top:100%; left:0; right:0; background:white; border:1px solid #ddd; max-height:300px; overflow-y:auto; z-index:100; border-radius:6px;"></div>
+        </div>
+
+        <!-- COMPARISON PANEL -->
+        <div id="comparePanel" style="display:none; background:#f0f4f8; border:2px solid #3498db; border-radius:12px; padding:16px; margin:20px 0;"></div>
+
+        <div class="controls">
+            <select id="stateSelect" onchange="loadByState()">
+                <option value="">-- Select State --</option>
+            </select>
+            <button onclick="loadCounties()">📊 Show All</button>
+            <button onclick="runComparison()" style="background-color:#27ae60">📈 Compare</button>
+            <button onclick="exportComparison()" style="background-color:#f39c12">📥 Export PDF</button>
+            <button onclick="exportCSV()" style="background-color:#9b59b6">📋 Export CSV</button>
+        </div>
+
+        <!-- COLORED TABS -->
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('overview')">📊 Overview</button>
+            <button class="tab" onclick="switchTab('statistics')">📈 Statistics</button>
+            <button class="tab" onclick="switchTab('correlation')">🔗 Correlation</button>
+            <button class="tab" onclick="switchTab('rankings')">🏆 Rankings</button>
+            <button class="tab" onclick="switchTab('equity')">⚖️ Equity Index</button>
+            <button class="tab" onclick="switchTab('ai')">🤖 AI Insights</button>
+        </div>
+
+        <!-- TAB CONTENTS -->
+        <div id="overview" class="tab-content active">
+            <div id="summaryStats" class="stats-grid" style="display:none;">
+                <div class="stat-box"><strong>AVG POVERTY %</strong><div id="avgPoverty" style="font-size:24px;">0</div></div>
+                <div class="stat-box"><strong>AVG DIABETES %</strong><div id="avgDiabetes" style="font-size:24px;">0</div></div>
+                <div class="stat-box"><strong>AVG OBESITY %</strong><div id="avgObesity" style="font-size:24px;">0</div></div>
+                <div class="stat-box"><strong>COUNTIES</strong><div id="totalCounties" style="font-size:24px;">0</div></div>
+            </div>
+
+            <div class="search-filter-box">
+                <input type="text" id="searchInput" class="search-input" placeholder="Search county...">
+                <button class="search-btn" onclick="searchCounty()">Search</button>
+                <button class="reset-btn" onclick="resetSearch()">Reset</button>
+            </div>
+
+            <!-- SIDE-BY-SIDE: Table LEFT + Chart RIGHT -->
+            <div class="layout-container">
+                <div class="table-section">
+                    <div id="results"></div>
+                </div>
+                <div class="chart-section">
+                    <div id="chartContainer" style="display:none;"><canvas id="comparisonChart"></canvas></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="statistics" class="tab-content">
+            <button onclick="loadStatistics()" style="background:#27ae60; color:white; padding:10px 20px; border:none; border-radius:4px; cursor:pointer;">Load Statistics</button>
+            <div id="statisticsContent" style="margin-top:15px;"></div>
+        </div>
+
+        <div id="correlation" class="tab-content">
+            <button onclick="loadCorrelation()" style="background:#e74c3c; color:white; padding:10px 20px; border:none; border-radius:4px; cursor:pointer;">Calculate Correlation</button>
+            <div id="correlationContent" style="margin-top:15px;"></div>
+        </div>
+
+        <div id="rankings" class="tab-content">
+            <select id="rankingMetric" onchange="loadRankings()">
+                <option value="poverty_pct">Highest Poverty %</option>
+                <option value="diabetes">Highest Diabetes %</option>
+                <option value="obesity">Highest Obesity %</option>
+            </select>
+            <div id="rankingsContent" style="margin-top:15px;"></div>
+        </div>
+
+        <div id="equity" class="tab-content">
+            <button onclick="loadEquityIndex()" style="background:#9b59b6; color:white; padding:10px 20px; border:none; border-radius:4px; cursor:pointer;">Calculate Equity Index</button>
+            <div id="equityContent" style="margin-top:15px;"></div>
+        </div>
+
+        <div id="ai" class="tab-content">
+            <button onclick="loadAISuggestions()" style="background:#1abc9c; color:white; padding:10px 20px; border:none; border-radius:4px; cursor:pointer;">Get AI Insights</button>
+            <div id="aiContent" style="margin-top:15px;"></div>
+        </div>
+
+        <div style="margin-top:30px; padding:15px; background:#f0f0f0; border-radius:8px; font-size:12px;">
+            <strong>Data:</strong> 2023 US Census Bureau (Poverty) + 2023 CDC PLACES (Diabetes, Obesity) | 3,135 counties
+        </div>
+    </div>
+
+    <script src="js/main.js"></script>
+</body>
+</html>

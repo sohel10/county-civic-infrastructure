@@ -1,0 +1,214 @@
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import './App.css';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+
+function App() {
+  const [allCounties, setAllCounties] = useState([]);
+import 'leaflet/dist/leaflet.css';
+  const [selectedCounties, setSelectedCounties] = useState([]);
+  const [comparisonData, setComparisonData] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchCounties = async () => {
+      try {
+        setLoading(true);
+        const response = await axios.get('http://localhost:5005/api/counties');
+        setAllCounties(response.data);
+      } catch (err) {
+        setError('Failed to load counties');
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchCounties();
+  }, []);
+
+  useEffect(() => {
+    if (selectedCounties.length > 0) {
+      fetchComparison();
+    } else {
+      setComparisonData([]);
+    }
+  }, [selectedCounties]);
+
+  const fetchComparison = async () => {
+    try {
+      setLoading(true);
+      const response = await axios.post('http://localhost:5005/api/compare', {
+        counties: selectedCounties
+      });
+      setComparisonData(response.data.comparison || response.data || []);
+    } catch (err) {
+      setError('Failed to fetch comparison data');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCountyToggle = (countyName) => {
+    if (selectedCounties.includes(countyName)) {
+      setSelectedCounties(selectedCounties.filter(c => c !== countyName));
+    } else {
+      setSelectedCounties([...selectedCounties, countyName]);
+    }
+  };
+
+  const handleClearAll = () => {
+    setSelectedCounties([]);
+    setComparisonData([]);
+  };
+
+  const chartData = comparisonData.map(county => ({
+    name: county.county_name,
+    poverty: parseFloat(county.poverty_percent) || 0,
+    diabetes: parseFloat(county.diabetes_percent) || 0,
+    obesity: parseFloat(county.obesity_percent) || 0
+  }));
+
+  return (
+    <div className="app-container">
+      <header className="app-header">
+        <h1>🗺️ County Health Comparison</h1>
+        <p>AI-powered health equity analysis. Analyze. Compare. Act.</p>
+      </header>
+
+      <div className="metrics-grid">
+        <div className="metric-card">
+          <div className="metric-number">{allCounties.length}</div>
+          <div className="metric-label">Counties Available</div>
+        </div>
+        <div className="metric-card">
+          <div className="metric-number">{selectedCounties.length}</div>
+          <div className="metric-label">Selected</div>
+        </div>
+        <div className="metric-card">
+          <div className="metric-number">2023</div>
+          <div className="metric-label">Data Year</div>
+        </div>
+      </div>
+
+      {error && <div className="error-banner">{error}</div>}
+      {loading && <div className="loading-spinner">Loading...</div>}
+
+      <div className="main-content">
+        <div className="left-panel">
+          <div className="panel-header">
+            <h2>Select Counties</h2>
+            {selectedCounties.length > 0 && (
+              <button className="btn-clear" onClick={handleClearAll}>Clear All</button>
+            )}
+          </div>
+
+          <div className="counties-list">
+            {allCounties.map(county => (
+              <label key={county.county_name} className="county-checkbox">
+                <input
+                  type="checkbox"
+                  checked={selectedCounties.includes(county.county_name)}
+                  onChange={() => handleCountyToggle(county.county_name)}
+                />
+                <span className="county-name">{county.county_name}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+
+        <div className="right-panel">
+          {selectedCounties.length === 0 ? (
+            <div className="empty-state">
+              <p>👈 Select counties to begin comparison</p>
+            </div>
+          ) : (
+            <>
+              <div className="selected-counties">
+                <h3>Comparing:</h3>
+                <div className="tags">
+                  {selectedCounties.map(county => (
+                    <div key={county} className="county-tag">
+                      <span>{county}</span>
+                      <button className="tag-close" onClick={() => handleCountyToggle(county)}>✕</button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="section">
+                <h3>Health Metrics Comparison</h3>
+                <div className="table-wrapper">
+                  <table className="comparison-table">
+                    <thead>
+                      <tr>
+                        <th>County</th>
+                        <th>Poverty %</th>
+                        <th>Diabetes %</th>
+                        <th>Obesity %</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {comparisonData.map(county => (
+                        <tr key={county.county_name}>
+                          <td className="county-cell">{county.county_name}</td>
+                          <td className="metric-cell poverty">{parseFloat(county.poverty_percent || 0).toFixed(1)}%</td>
+                          <td className="metric-cell diabetes">{parseFloat(county.diabetes_percent || 0).toFixed(1)}%</td>
+                          <td className="metric-cell obesity">{parseFloat(county.obesity_percent || 0).toFixed(1)}%</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div className="charts-grid">
+                <div className="chart-container">
+                  <h4>Poverty Rate</h4>
+                  <ResponsiveContainer width="100%" height={250}>
+                    <BarChart data={chartData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="name" angle={-45} textAnchor="end" height={80} />
+                      <YAxis />
+                      <Tooltip />
+                      <Bar dataKey="poverty" fill="#ef4444" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+
+                <div className="chart-container">
+                  <h4>Diabetes Prevalence</h4>
+                  <ResponsiveContainer width="100%" height={250}>
+                    <BarChart data={chartData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="name" angle={-45} textAnchor="end" height={80} />
+                      <YAxis />
+                      <Tooltip />
+                      <Bar dataKey="diabetes" fill="#f97316" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+
+                <div className="chart-container">
+                  <h4>Obesity Rate</h4>
+                  <ResponsiveContainer width="100%" height={250}>
+                    <BarChart data={chartData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="name" angle={-45} textAnchor="end" height={80} />
+                      <YAxis />
+                      <Tooltip />
+                      <Bar dataKey="obesity" fill="#eab308" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default App;
