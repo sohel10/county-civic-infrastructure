@@ -1,16 +1,37 @@
-*.tar
-*.db
-*.sqlite
-*.sqlite3
-__pycache__/
+# 🔐 SENSITIVE FILES - NEVER COMMIT
+rag.pem
+*.pem
 .env
-*.pyc
-*.pyo
-venv/
+.env.local
+.env.*.local
+
+# Node
 node_modules/
-.DS_Store
-*.log
+build/
+dist/
+.next/
+
+# Python
+__pycache__/
+*.pyc
+venv/
+env/
+.venv/
+
+# Backups
+*.BACKUP_*
+*.backup
+
+# IDE
+.vscode/
 .idea/
 *.swp
 *.swo
-rag.pem
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
